@@ -1,0 +1,40 @@
+@import "tailwindcss";
+@plugin "flowbite-react/plugin/tailwindcss";
+@source "../.flowbite-react/class-list.json";
+
+@tailwind utilities;
+
+@layer utilities {
+  /* Светлая тема */
+  .scrollbar-light {
+    scrollbar-width: thin;
+    scrollbar-color: #6ee7b7 #ecfdf5;
+  }
+
+  .scrollbar-light::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  .scrollbar-light::-webkit-scrollbar-track {
+    @apply rounded bg-emerald-50;
+  }
+
+  .scrollbar-light::-webkit-scrollbar-thumb {
+    @apply rounded border-2 border-emerald-50 bg-emerald-300;
+  }
+
+  /* Темная тема */
+  .dark .scrollbar-dark {
+    scrollbar-color: #4b5563 #1f2937;
+  }
+
+  .dark .scrollbar-dark::-webkit-scrollbar-track {
+    @apply bg-slate-800;
+  }
+
+  .dark .scrollbar-dark::-webkit-scrollbar-thumb {
+    @apply border-slate-800 bg-slate-600;
+  }
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
