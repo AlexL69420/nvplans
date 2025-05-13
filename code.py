@@ -1,0 +1,165 @@
+!pip install transformers torch sentencepiece accelerate datasets bitsandbytes peft
+!nvidia-smi
+import pandas as pd
+from transformers import (
+    MT5ForConditionalGeneration,
+    MT5Tokenizer,
+    Seq2SeqTrainer,
+    Seq2SeqTrainingArguments,
+    BitsAndBytesConfig
+)
+from datasets import Dataset
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+import torch
+import gc
+import psutil
+
+from flask import Flask, request, jsonify
+import threading
+import subprocess
+import time
+import requests
+import re
+import os
+from transformers import MT5ForConditionalGeneration, MT5Tokenizer
+import torch
+
+# Инициализация Flask
+app = Flask(__name__)
+
+# Загрузка модели (выполняется один раз при старте)
+def load_model():
+    model_path = "/content/drive/MyDrive/fixed_model"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    print("Загрузка модели...")
+    model = MT5ForConditionalGeneration.from_pretrained(model_path).to(device)
+    tokenizer = MT5Tokenizer.from_pretrained(model_path)
+    model.eval()
+    print("Модель загружена и готова к работе")
+
+    return model, tokenizer, device
+
+model, tokenizer, device = load_model()
+
+# Функция генерации ответа
+def generate_answer(question):
+    input_text = f"generate hypothetical answer: {question} </s>"
+    inputs = tokenizer(input_text, return_tensors="pt").to(device)
+
+    outputs = model.generate(
+        inputs.input_ids,
+        max_length=300,
+        num_beams=5,
+        early_stopping=True,
+        no_repeat_ngram_size=3,
+        repetition_penalty=1.2,
+        length_penalty=1.5,
+        bad_words_ids=[[2]],
+        forced_bos_token_id=tokenizer.convert_tokens_to_ids("▁"),
+        do_sample=False
+    )
+    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+# Освобождаем порт перед запуском
+def kill_port(port):
+    try:
+        os.system(f'fuser -k {port}/tcp')
+    except:
+        pass
+
+@app.route('/api/colab', methods=['POST'])
+def handle_request():
+    try:
+        data = request.json
+        print("Получен запрос:", data)
+
+        if not data.get('message'):
+            return jsonify({
+                "status": "error",
+                "response": "Сообщение не может быть пустым"
+            }), 400
+
+        start_time = time.time()
+        answer = generate_answer(data['message'])
+        processing_time = time.time() - start_time
+
+        response = {
+            "status": "success",
+            "response": answer,
+            "processingTime": processing_time
+        }
+
+        print(f"Сгенерирован ответ за {processing_time:.2f} сек")
+        return jsonify(response), 200
+
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "response": str(e),
+            "processingTime": 0
+        }), 500
+
+def run_flask():
+    kill_port(5000)
+    app.run(host='0.0.0.0', port=5000, debug=False)
+
+def setup_tunnel():
+    subprocess.run(['wget', '-q', 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64'], check=True)
+    subprocess.run(['chmod', '+x', 'cloudflared-linux-amd64'], check=True)
+
+    tunnel = subprocess.Popen(
+        ['./cloudflared-linux-amd64', 'tunnel', '--url', 'http://localhost:5000'],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1
+    )
+
+    max_attempts = 30
+    public_url = None
+
+    for _ in range(max_attempts):
+        line = tunnel.stderr.readline()
+        if not line:
+            time.sleep(1)
+            continue
+
+        print(line, end='')
+        url_match = re.search(r'https://[a-zA-Z0-9-]+\.trycloudflare\.com', line)
+        if url_match:
+            public_url = url_match.group(0)
+            print(f"\n\nСервер доступен по URL: {public_url}\n")
+            time.sleep(5)
+            break
+
+    return public_url, tunnel
+
+if __name__ == '__main__':
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+    time.sleep(2)
+
+    public_url, tunnel = setup_tunnel()
+
+    if public_url:
+        for i in range(5):
+            try:
+                test_response = requests.post(
+                    f'{public_url}/api/colab',
+                    json={"message": "Тестовый вопрос"},
+                    timeout=10
+                )
+                print("Тест подключения:", test_response.json())
+                break
+            except Exception as e:
+                print(f"Попытка {i+1}/5 не удалась:", str(e))
+                time.sleep(2)
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nЗавершение работы...")
+        tunnel.terminate()
