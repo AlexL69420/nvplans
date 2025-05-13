@@ -1,54 +1,32 @@
-# React + TypeScript + Vite
+# Функционал
+Веб-приложение реализует чат c языковой моделью (переобученной google/mt5-small). Есть возможность авторизации и регистрации и доступ к истории чатов для авторизованных пользователей. Есть возможность сменить пароль. 
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Стек решения:
+- Клиентская часть была реализована с помощью React (TypeScript), используя такие фреймворки, как Tailwind.css, Flowbite и библиотеку Axios.
+- Серверная часть была реализована с помощью Node.js (Express.js).
+- База данных была реализована с помощью supabase (sql)
+- Веб-приложение было задеплоено с помощью Cloud Pub: https://mockingly-pumped-parakeet.cloudpub.ru/ (если сайт не работает по ссылке, значит сервер отключён). 
 
-Currently, two official plugins are available:
+# Инструкция по запуску
+Простой вариант: сайт доступен по следующему url: https://mockingly-pumped-parakeet.cloudpub.ru/
+> Важно: сайт задеплоен с помощью аналога ngrok, перед переходом по ссылке нужно обратиться к разрботчику приложения для того, чтобы он запустил сервер. Контакты:@FiredAgitator
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Сложный вариант: задеплоить приложение самому
+- Получить решение из гитхаба (например, с помощью git clone)
+- Открыть папку client в терминале и ввести:
+   - npm i  
+   - npm run dev  
+   - кликнуть на появившуюся ссылку (здесь можно будет посмотреть порт фронтенда)
+- Открыть папку server в терминале и ввести:
+   - npm i  
+- провести каналы от портов http://localhost:5001 и http://localhost:5173 (или другой порт фронтенда)
+- заменить url фронтенда в файле server\src\app.mjs (на url канала от http://localhost:5173)
+- заменить url бекенда в файле  client\src\environment.ts (на url канала от http://localhost:5001)
+- Загрузить модель из https://drive.google.com/drive/folders/1p5tqAvb4BdVHQK5Gyy8BtXrP7A5U9UFR?usp=drive_link и сохранить её на свой google drive.
+- Открыть новый проект в google colab и вставить в ячейку код из файла code.txt
+- Запустить ячайку, скопировать url сервера и вставить его в файл server\src\routes\answer.mjs вместо https://copy-exploring-ware-canal.trycloudflare.com/api/colab
+ - Открыть папку server в терминале и ввести:
+   - npm start 
+- Наслаждаться работающим веб-сайтом
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-});
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from "eslint-plugin-react-x";
-import reactDom from "eslint-plugin-react-dom";
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    "react-x": reactX,
-    "react-dom": reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs["recommended-typescript"].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-});
-```
+При возникновении проблем с использованией приложения обратиться к разработчику
